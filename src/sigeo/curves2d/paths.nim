@@ -323,6 +323,13 @@ proc `-=`*(this: Path2_Y, v: Float) =
   (ptr Path2)(this)[].add v2(0, -v)
 
 
+proc path*(curves: varargs[Curve2]): Path2 =
+  for x in curves: result.add x
+
+proc contour*(curves: varargs[Curve2]): Path2 =
+  for x in curves: result.add x
+  close result
+
 
 # --- opencascade utils ---
 

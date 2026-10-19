@@ -1,8 +1,9 @@
-import std/[math, algorithm, tables]
+import std/[math, algorithm, tables, sequtils]
 import ../[core]
 import ./[icurve2, paths, intersectionGraph]
 
 
+## todo: this module is a mess and should be rewritten (it also has noticable bugs)
 ## Finding closed paths in a curve intersection graph.
 ##
 ## Parts of the graph that touch only at a single point, or are connected only by a single
@@ -198,6 +199,18 @@ proc innerContours*(graph: CurveGraph): seq[Path2] =
     for i, f in fs:
       if i != outer:
         result.add graph.toContour(f)
+
+
+proc collectClosedContours*(curves: openArray[Curve2], tolerance: Float = 1e-6): seq[Path2] =
+  ## assembles closed contours out of arbitrary curves with the given point match tolerance.
+  ## curves are split at intersection points,
+  ## points closer than `tolerance` are merged into one,
+  ## parts of curves that don't form closed loops are dropped.
+  if curves.len == 0: return
+
+  var graph = buildIntersectionGraph(curves.map(toOwnedCurve2), tolerance)
+  graph.removeDeadEnds()
+  graph.innerContours()
 
 
 

@@ -4,6 +4,7 @@ import ../macros/[compacting]
 import ./[icurve2, lineSection, circleArc, intersections]
 
 
+## todo: this module is a mess and should be rewritten (it also has noticable bugs)
 ## Efficient intersection finding for many curves of different kinds, with a given precision.
 ##
 ## allIntersections() finds all intersection points.
