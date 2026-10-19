@@ -1,8 +1,8 @@
-import std/[sequtils]
-import pkg/[siwin, vmath, chroma, rice]
+import std/[sequtils, os, strutils]
+import pkg/[siwin, vmath, chroma, rice, opengl]
+import pkg/pixie/[images, imageloading]
 import sigeo/[core]
 import sigeo/surfaces/[grids]
-
 
 type
   CameraState* = ref object
@@ -17,6 +17,13 @@ type
 
     camera*: CameraState
     clearColor*: Color
+
+    headless*: bool
+    fb*: FrameBuffer
+    autoRun*: proc(ctx: DrawContext)
+
+
+var headlessGlobals: SiwinGlobals
 
 
 proc toVec3(p: Point2): Vec3 {.inline.} =
@@ -34,7 +41,7 @@ proc drawPolyline*(ctx: DrawContext, pts: openArray[Point2], color: Color, thick
 
 
 proc drawDot*(ctx: DrawContext, p: Point2, color: Color, radius: float32) =
-  ctx.fillCircle(color, radius, center = p.toVec3)
+  ctx.fillCircle(p.toVec3, radius, color)
 
 
 proc drawBoundsRect*(ctx: DrawContext, b: Bounds2, color: Color, thickness: float32 = 1) =
@@ -124,8 +131,21 @@ proc newVisualTest*(
   contentCenter = vec2(0, 0),
   zoom: float32 = 0, ## initial zoom; 0 means "1 world unit = 1 pixel at the initial window size"
   clearColor = color(0.12, 0.12, 0.12),
+  headless = defined(headless),
 ): VisualTest =
-  let win = newOpenglWindow(title = title, size = size)
+  var win: Window
+  if headless:
+    if headlessGlobals == nil:
+      # siwin does not support offscreen contexts on wayland yet, use x11 (XWayland works fine)
+      headlessGlobals = newSiwinGlobals(x11)
+
+    win = headlessGlobals.newOpenglContext()
+    # siwin's invisible window is created with 1x1 size, so resize it before
+    # the aafb is created below (otherwise it would be created with 0x0 size)
+    win.size = size
+  else:
+    win = newOpenglWindow(title = title, size = size)
+
   opengl.loadExtensions()
 
   let ctx = newDrawContext()
@@ -140,7 +160,11 @@ proc newVisualTest*(
       zoom: (if zoom == 0: 2 / size.y.float32 else: zoom),
     ),
     clearColor: clearColor,
+    headless: headless,
   )
+
+  if headless:
+    result.fb = result.ctx.requireFrameBuffer(size)
 
   let app = result
 
@@ -155,8 +179,41 @@ proc newVisualTest*(
 proc onKey*(app: VisualTest, handler: proc(e: KeyEvent)) =
   app.win.eventsHandler.onKey = handler
 
+proc onAutoRun*(app: VisualTest, handler: proc(e: DrawContext)) =
+  app.autoRun = handler
 
-proc run*(app: VisualTest, render: proc(ctx: DrawContext)) =
+
+proc saveScreenshot*(app: VisualTest, name = "screenshot", path = "local_screenshots/$0/$1.png") =
+  let pfb = app.ctx.push app.fb
+  app.win.eventsHandler.onRender(RenderEvent(window: app.win))
+
+  let size = app.ctx.fboSize
+  let img = newImage(size.x, size.y)
+  # aafb blit (inside drawInside) leaves GL_READ_FRAMEBUFFER bound to 0
+  # (the default framebuffer), but glReadPixels reads from the read framebuffer,
+  # so bind the framebuffer we rendered into back before reading
+  # todo: fix that in rice 0.2.X
+  glBindFrameBuffer(GL_READ_FRAMEBUFFER, app.fb.fbo[0])
+  glPixelStorei(GlPackAlignment, 1)
+  glReadPixels(0, 0, size.x.Glsizei, size.y.Glsizei, GlRgba, GlUnsignedByte, img.data[0].addr)
+
+  let path = path.replace("$0", paramStr(0).splitFile.name).replace("$1", name)
+  createDir path.splitPath.head
+
+  # OpenGL returns rows bottom-to-top, pixie stores rows top-to-bottom
+  let h = size.y
+  for y in 0 ..< h div 2:
+    let top = y * size.x
+    let bottom = (h - 1 - y) * size.x
+    for x in 0 ..< size.x:
+      swap(img.data[top + x], img.data[bottom + x])
+
+  img.writeFile(path)
+  echo "saved screenshot to: ", path
+  app.ctx.pop pfb
+
+
+proc run*(app: VisualTest, render: proc(ctx: DrawContext), screenshotOut = "local_screenshots/$0.png") =
   ## sets up the render loop (clear, camera viewport, antialiasing) and runs the window
   app.win.eventsHandler.onRender = proc(e: RenderEvent) =
     let vw = e.window.size.x.float32
@@ -164,8 +221,8 @@ proc run*(app: VisualTest, render: proc(ctx: DrawContext)) =
 
     glViewport 0, 0, e.window.size.x.GlInt, e.window.size.y.GlInt
     app.ctx.updateDrawingAreaSize(e.window.size)
-    app.ctx.resize(app.aafb, e.window.size)
 
+    app.ctx.resize(app.aafb, e.window.size)
     app.ctx.drawInside app.aafb:
       glClearColor(app.clearColor.r, app.clearColor.g, app.clearColor.b, 1)
       glClear(GL_COLOR_BUFFER_BIT)
@@ -180,5 +237,40 @@ proc run*(app: VisualTest, render: proc(ctx: DrawContext)) =
 
       render(app.ctx)
 
-  run app.win
+  if app.headless:
+    if app.autoRun != nil:
+      app.autoRun(app.ctx)
+    else:
+      app.saveScreenshot()
 
+  else:
+    run app.win
+
+
+# --- input emulation ---
+
+proc updateModifiers(this: VisualTest) =
+  let pressed = this.win.keyboard.pressed
+  var modifiers: set[ModifierKey]
+  if (pressed * {Key.lshift, Key.rshift}).len != 0: modifiers.incl ModifierKey.shift
+  if (pressed * {Key.lcontrol, Key.rcontrol}).len != 0: modifiers.incl ModifierKey.control
+  if (pressed * {Key.lalt, Key.ralt, Key.level3_shift, Key.level5_shift}).len != 0: modifiers.incl ModifierKey.alt
+  if (pressed * {Key.lsystem, Key.rsystem}).len != 0: modifiers.incl ModifierKey.system
+  this.win.keyboard.modifiers = modifiers
+
+proc keyPress*(this: VisualTest, key: Key) =
+  ## presses a key (and keeps it pressed until `keyRelease`)
+  this.win.keyboard.pressed.incl key
+  this.updateModifiers()
+  this.win.eventsHandler.onKey(KeyEvent(window: this.win, key: key, pressed: true, modifiers: this.win.keyboard.modifiers))
+
+proc keyRelease*(this: VisualTest, key: Key) =
+  ## releases a key pressed by `keyPress`
+  this.win.keyboard.pressed.excl key
+  this.updateModifiers()
+  this.win.eventsHandler.onKey(KeyEvent(window: this.win, key: key, pressed: false, modifiers: this.win.keyboard.modifiers))
+
+proc keyTap*(this: VisualTest, key: Key) =
+  ## presses and releases a key
+  this.keyPress(key)
+  this.keyRelease(key)
