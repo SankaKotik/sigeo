@@ -156,15 +156,8 @@ proc `-=`*(a: var Point3, b: V3) {.inline.} =
   a = a - b
 
 
-proc almostEqual*(a, b: Point2, unitsInLastSpace: Natural = 4): bool {.borrow, aliases: [`~==`].}
-proc almostEqual*(a, b: Point3, unitsInLastSpace: Natural = 4): bool {.borrow, aliases: [`~==`].}
-
-
-proc almostEqual*(a, b: Point2, tolerance: Float): bool {.borrow.}
-proc almostEqual*(a, b: Point3, tolerance: Float): bool {.borrow.}
-
-
-template `~!=`*[T](a, b: T): bool = not(a ~== b)
+proc `~==`*(a, b: Point2, tolerance: Float = sigeo_samePoint_eps): bool {.borrow.}
+proc `~==`*(a, b: Point3, tolerance: Float = sigeo_samePoint_eps): bool {.borrow.}
 
 
 proc transform*(p: Point2, m: M4): Point2 {.aliases: [`*`].} =

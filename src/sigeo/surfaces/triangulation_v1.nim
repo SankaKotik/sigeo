@@ -24,6 +24,8 @@ proc makeGrid*(surface: Surface3, brep: openArray[Curve2], minU, minV, maxU, max
 
   assert minU <= maxU
   assert minV <= maxV
+  assert stepU > 0
+  assert stepV > 0
 
   let uCount = ((maxU - minU) / stepU).ceil.int
   let vCount = ((maxV - minV) / stepV).ceil.int

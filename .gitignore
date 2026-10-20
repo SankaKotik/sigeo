@@ -17,5 +17,7 @@
 /nim.cfg
 nimcache
 
+/AGENTS.md
+
 local_*
 local-*

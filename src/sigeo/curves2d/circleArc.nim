@@ -22,7 +22,7 @@ type
 
 
 func adjustToPrecision*(circle: var CircleArc2) =
-  if circle.startAngle.almostEqual(circle.endAngle):
+  if circle.startAngle ~== circle.endAngle:
     circle.startAngle = circle.endAngle
 
 

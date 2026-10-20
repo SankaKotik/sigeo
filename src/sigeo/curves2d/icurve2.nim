@@ -57,9 +57,9 @@ proc bounds*(curve: Curve2Concept): Bounds2 =
 proc reverse*(this: Curve2Concept): auto =
   this.cut(1, 0)
 
-proc points*(arc: Curve2Concept, count: int = 32): seq[Point2] =
+proc points*(this: Curve2Concept, count: int = 32): seq[Point2] =
   for i in 0..count:
-    result.add arc.pointAt(i / count)
+    result.add this.pointAt(i / count)
 
 
 # --- numerical methods to implement optional interfaces ---

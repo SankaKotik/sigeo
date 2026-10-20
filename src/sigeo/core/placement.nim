@@ -90,8 +90,8 @@ proc signedDistanceToPlane*(point: Point3, plane: Placement): Float =
 
 proc toWorld*(point: Point3, cs: Placement): Point3 =
   ## returns a point in world coordinate system, from point in `cs` coordinate system
-  #runnableExamples:
-  #  doAssert point3(1, 2, 0).toWorld(plane(vec3(0, 1, 0), point3(1, 1, 1)).Placement).almostEqual(point3(2, 1, -1))
+  runnableExamples:
+    doAssert point3(1, 2, 0).toWorld(plane(vec3(0, 1, 0), point3(1, 1, 1)).Placement) ~== (point3(2, 1, -1))
 
   point.transformBy(cs)
 

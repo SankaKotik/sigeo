@@ -61,6 +61,9 @@ type
     counterclockwise
     clockwise
 
+const sigeo_samePoint_eps* = 1e-8
+
+
 
 template genOnlyVecConstructors(lower, upper, typ: untyped) =
   ## Generate vector constructor for your own type.
@@ -188,51 +191,45 @@ proc v3*(xy: V2, z: float64): V3 {.inline.} = v3(xy.x, xy.y, z)
 proc v3*(x: float64, yz: V2): V3 {.inline.} = v3(x, yz.x, yz.y)
 
 
-proc almostEqual*(a, b: V2, unitsInLastSpace: Natural = 4): bool {.aliases: [`~==`].} =
-  a.x.almostEqual(b.x, unitsInLastSpace) and
-  a.y.almostEqual(b.y, unitsInLastSpace)
+proc `~==`*(a, b: Float, tolerance: Float = sigeo_samePoint_eps): bool =
+  (a == b or abs(a - b) < tolerance)
 
-proc almostEqual*(a, b: V3, unitsInLastSpace: Natural = 4): bool {.aliases: [`~==`].} =
-  a.x.almostEqual(b.x, unitsInLastSpace) and
-  a.y.almostEqual(b.y, unitsInLastSpace) and
-  a.z.almostEqual(b.z, unitsInLastSpace)
-
-
-proc almostEqual*(a, b: V2, tolerance: float32): bool =
+proc `~==`*(a, b: V2, tolerance: Float = sigeo_samePoint_eps): bool =
   (a.x == b.x or abs(a.x - b.x) < tolerance) and
   (a.y == b.y or abs(a.y - b.y) < tolerance)
 
-proc almostEqual*(a, b: V3, tolerance: float32): bool =
+proc `~==`*(a, b: V3, tolerance: Float = sigeo_samePoint_eps): bool =
   (a.x == b.x or abs(a.x - b.x) < tolerance) and
   (a.y == b.y or abs(a.y - b.y) < tolerance) and
   (a.z == b.z or abs(a.z - b.z) < tolerance)
 
 
-template `~==`*(a, b: Float): bool =
-  a.almostEqual(b)
+template `~!=`*(a, b: untyped): bool = not(a ~== b)
 
 
-proc almostEqual*[T](a, b: seq[T], unitsInLastSpace: Natural = 4): bool {.aliases: [`~==`].} =
+proc `~==`*[T](a, b: openArray[T], tolerance: Float = sigeo_samePoint_eps): bool =
   if a.len != b.len: return false
   result = true
   for i in 0..<a.len:
-    if a[i].almostEqual(b[i]).not: return false
+    if a[i] ~!= b[i]: return false
 
 
-proc almostEqualOrLess*(a, b: Float; unitsInLastPlace: Natural = 4): bool {.aliases: [`~<`].} =
-  ## return true if a is less than b or almost equal to it
-  a < b + epsilon(Float) * Float(unitsInLastPlace)
+proc `~<`*(a, b: Float; tolerance: Float = sigeo_samePoint_eps): bool =
+  ## return true if a < b or a ~== b
+  a < b + tolerance
 
-template almostEqualOrGreater*(a, b: Float; unitsInLastPlace: Natural = 4): bool {.aliases: [`~>`].} =
-  almostEqualOrLess(b, a, unitsInLastPlace)
+proc `~>`*(a, b: Float; tolerance: Float = sigeo_samePoint_eps): bool =
+  ## return true if a > b or a ~== b
+  a > b - tolerance
 
 
-proc sureLess*(a, b: Float, unitsInLastPlace: Natural = 4): bool {.aliases: [`~!<`].} =
-  ## return true if a is less than b and not almost equal to it
-  a < b - epsilon(Float) * Float(unitsInLastPlace)
+proc `~!<`*(a, b: Float, tolerance: Float = sigeo_samePoint_eps): bool =
+  ## return true if a < b and a ~!= b
+  a < b - tolerance
 
-template sureGreater*(a, b: Float, unitsInLastPlace: Natural = 4): bool {.aliases: [`~!>`].} =
-  sureLess(b, a, unitsInLastPlace)
+proc `~!>`*(a, b: Float, tolerance: Float = sigeo_samePoint_eps): bool =
+  ## return true if a > b and a ~!= b
+  a > b + tolerance
 
 
 

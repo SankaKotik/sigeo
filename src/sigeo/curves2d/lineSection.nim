@@ -78,7 +78,7 @@ func center*(line: LineSection2): Point2 =
 func fastHasPoint*(line: LineSection2, point: Point2): bool =
   ## returns true if `point` is on line section, assuming point is on line
   let p = line.paramAtPoint(point).Float
-  p.almostEqualOrGreater(0) and p.almostEqualOrLess(1)
+  (p ~> 0) and (p ~< 1)
 
 func hasPoint*(line: LineSection2, point: Point2): bool =
   ## returns true if `point` is on line section
@@ -99,9 +99,9 @@ func isCollinear*(lineA, lineB: LineSection2): bool =
   (lineB.endPoint - lineA.startPoint).dot(avy) ~== 0
 
 
-func almostEqual*(lineA, lineB: LineSection2): bool {.aliases: [`~==`].} =
-  lineA.startPoint.almostEqual(lineB.startPoint) and lineA.endPoint.almostEqual(lineB.endPoint) or
-  lineA.startPoint.almostEqual(lineB.endPoint) and lineA.endPoint.almostEqual(lineB.startPoint)
+func `~==`*(lineA, lineB: LineSection2): bool =
+  (lineA.startPoint ~== lineB.startPoint) and (lineA.endPoint ~== lineB.endPoint) or
+  (lineA.startPoint ~== lineB.endPoint) and (lineA.endPoint ~== lineB.startPoint)
 
 
 

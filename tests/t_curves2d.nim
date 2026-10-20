@@ -13,22 +13,22 @@ test "curves2d intersections":
     var pointsN = 0
     let points = intersectionPointsParams(line_a, line_b, pointsN)
     check pointsN == 1
-    check points[0].curveA.almostEqual(1 / 4)
-    check points[0].curveB.almostEqual(1 / 2)
+    check points[0].curveA ~== (1 / 4)
+    check points[0].curveB ~== (1 / 2)
 
   block:
     var pointsN = 0
     let points = intersectionPointsParams(line_a, line_c, pointsN)
     check pointsN == 1
-    check points[0].curveA.almostEqual(1 / 4)
-    check points[0].curveB.almostEqual(1)
+    check points[0].curveA ~== (1 / 4)
+    check points[0].curveB ~== (1)
 
   block:
     var pointsN = 0
     let points = intersectionPointsParams(line_d, line_e, pointsN)
     check pointsN == 1
-    check points[0].curveA.almostEqual(6 / 10)
-    check points[0].curveB.almostEqual(0)
+    check points[0].curveA ~== (6 / 10)
+    check points[0].curveB ~== (0)
 
 
 test "curves2d transform":

@@ -154,9 +154,9 @@ proc intersectionPointsParams*(
     ## signed distance from curveB.startPoint to line of curveA (distance on y-axis)
   
   if (
-    (bspld.sureLess(0) and bay > 0) or
-    (bspld.sureGreater(0) and bay < 0) or
-    (abs(bspld).sureGreater(abs(bay)))
+    ((bspld ~!< 0) and bay > 0) or
+    ((bspld ~!> 0) and bay < 0) or
+    (abs(bspld) ~!> (abs(bay)))
   ):
     return  ## lines intersect, but not line segments
 
@@ -168,7 +168,7 @@ proc intersectionPointsParams*(
   let bipx = (bip - curveA.startPoint).dot(avx)
   let bipex = (bip - curveA.endPoint).dot(avx)
 
-  if bipx.sureLess(0) or bipex.sureGreater(0):
+  if (bipx ~!< 0) or (bipex ~!> 0):
     return  ## point of intersection is not on curveA
 
   inc pointsCount
@@ -234,14 +234,14 @@ proc intersectionPointsParams*(
   let qc = f.dot(f) - curveB.radius * curveB.radius
 
   let discriminant = qb * qb - 4 * qa * qc
-  if discriminant.sureLess(0): return
+  if discriminant ~!< 0: return
 
   let sqrtDisc = sqrt(max(0.Float, discriminant))
   let angLen = curveB.angularLength
 
   template checkPoint(lineT: Float) {.dirty.} =
     block checkPointBlock:
-      if lineT.sureLess(0) or lineT.sureGreater(1): break checkPointBlock
+      if (lineT ~!< 0) or (lineT ~!> 1): break checkPointBlock
 
       let pv = curveA.startPoint + d * lineT
       let angle = arctan2((pv - curveB.center).y, (pv - curveB.center).x)
@@ -249,11 +249,11 @@ proc intersectionPointsParams*(
       var arcParam: Float
       if angLen > 0:
         let dist = ((angle - curveB.startAngle) mod (2 * PI) + 2 * PI) mod (2 * PI)
-        if not curveB.fullCircle and dist.sureGreater(angLen): break checkPointBlock
+        if not curveB.fullCircle and (dist ~!> angLen): break checkPointBlock
         arcParam = dist / angLen
       else:
         let dist = -(((curveB.startAngle - angle) mod (2 * PI) + 2 * PI) mod (2 * PI))
-        if not curveB.fullCircle and dist.sureLess(angLen): break checkPointBlock
+        if not curveB.fullCircle and (dist ~!< angLen): break checkPointBlock
         arcParam = dist / angLen
 
       result[pointsCount] = (curveA: lineT.FloatParam, curveB: arcParam.FloatParam)
