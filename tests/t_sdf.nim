@@ -1,4 +1,4 @@
-import std/[unittest, tables, math, sequtils, sets]
+import std/[unittest, tables, math]
 import sigeo/[core, sdf]
 
 

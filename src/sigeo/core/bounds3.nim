@@ -57,45 +57,11 @@ proc `+`*(a: Bounds3, b: Point3|Bounds3): Bounds3 =
 template `+`*(a: Point3, b: Bounds3): Bounds3 = b + a
 
 
-template bounds3FromIterator(v: iterable[HasBounds3]): Bounds3 =
+template bounds3FromIterator*(v: iterable[HasBounds3]): Bounds3 =
   var res = Bounds3()
   for x in v:
     res.add x.bounds3
   res
-
-
-proc buildBvh3[T: HasBounds3](objects: var seq[T], start, `end`: int): BvhNode3[T] =
-  ## todo
-
-  # let node = BVHNode()
-  # let count = `end` - start
-
-  # node.bounds = computeBounds(objects.toOpenArray(start, `end` - 1))
-
-  # if count <= 2:
-  #   node.isLeaf = true
-  #   node.objects = objects[start ..< `end`]
-  #   return node
-
-  # let extentX = node.bounds.maxPoint[0] - node.bounds.minPoint[0]
-  # let extentY = node.bounds.maxPoint[1] - node.bounds.minPoint[1]
-  # let extentZ = node.bounds.maxPoint[2] - node.bounds.minPoint[2]
-  
-  # var axis = 0
-  # if extentY > extentX: axis = 1
-  # if extentZ > max(extentX, extentY): axis = 2
-
-  # sort(objects[start ..< `end`], proc (x, y: T): int =
-  #   cmp(x.centroid[axis], y.centroid[axis])
-  # )
-
-  # let mid = start + count div 2
-
-  # node.isLeaf = false
-  # node.leftChild = buildBVH(objects, start, mid)
-  # node.rightChild = buildBVH(objects, mid, `end`)
-  
-  # return node
 
 
 
