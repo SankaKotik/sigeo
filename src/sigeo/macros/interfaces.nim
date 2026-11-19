@@ -156,7 +156,7 @@ macro makeInterfaceImpl(name, body: untyped): untyped =
   # =destroy
   result.add mkProc(
     nnkAccQuoted.newTree(ident"=destroy"),
-    @[newEmptyNode(), newIdentDefs(ident"this", ownedName)],
+    @[newEmptyNode(), newIdentDefs(ident"this", nnkVarTy.newTree(ownedName))],
     newStmtList(
       nnkIfStmt.newTree(nnkElifBranch.newTree(
         nnkInfix.newTree(ident("!="), dot("this", "obj"), newNilLit()),  # nil guard
@@ -222,8 +222,14 @@ macro makeInterfaceImpl(name, body: untyped): untyped =
         nnkInfix.newTree(ident("!="), "this".dot("obj"), newNilLit()),  # nil guard
         callThrough("this", "destroy", @["this".dot("obj")])
       )),
-      callThrough("other", "sink", @["other".dot("obj"), "this".dot("obj")]),
-      nnkAsgn.newTree("this".dot("vtable"), "other".dot("vtable"))
+      nnkIfStmt.newTree(nnkElifBranch.newTree(
+        nnkInfix.newTree(ident("!="), "other".dot("obj"), newNilLit()),
+        newStmtList(
+          callThrough("other", "sink", @["other".dot("obj"), "this".dot("obj")]),
+          nnkAsgn.newTree("this".dot("vtable"), "other".dot("vtable")),
+          callThrough("other", "destroy", @["other".dot("obj")])
+        )
+      ))
     )
   )
 
@@ -454,7 +460,8 @@ macro implementInterfaceFor*(name: typed, implementors: varargs[typed], fwd: sta
             nnkTryStmt.newTree(
               newCall(nnkAccQuoted.newTree(ident"=destroy"), derefCast(ident"this")),
               nnkExceptBranch.newTree(nnkDiscardStmt.newTree(newEmptyNode()))
-            )
+            ),
+            newCall(ident"dealloc", ident"this")
           )
         )
       )
